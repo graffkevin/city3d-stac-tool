@@ -823,6 +823,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "city3d-stac-wasm"
+version = "0.1.0"
+dependencies = [
+ "city3d-stac-tiles3d",
+ "serde_json",
+]
+
+[[package]]
 name = "cjseq"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/city3d-stac-types", "crates/city3d-stac-tiles3d", "crates/city3d-stac-gen"]
+members = ["crates/city3d-stac-types", "crates/city3d-stac-tiles3d", "crates/city3d-stac-gen", "crates/city3d-stac-wasm"]
 
 [workspace.package]
 edition = "2021"

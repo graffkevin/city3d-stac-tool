@@ -1,0 +1,16 @@
+[package]
+name = "city3d-stac-wasm"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "STAC Items of 3D Tiles tilesets in the browser (WebAssembly, JSON in and out)"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+serde_json.workspace = true
+city3d-stac-tiles3d.workspace = true
