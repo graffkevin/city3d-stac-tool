@@ -12,6 +12,10 @@ STAC is the widely-adopted metadata standard for geospatial data, but it lacks n
 - **CityJSONTextSequences** (`.jsonl`) - Line-delimited CityJSON features
 - **CityGML** (`.gml`, `.xml`) - 3D City Models standard XML format (v2.0, v3.0)
 - **FlatCityBuf** (`.fcb`) - Binary columnar format for CityJSON
+- **3D Tiles** (`tileset.json`, 1.0 and 1.1) - Extent from the root bounding volume, object types and attributes
+  from the metadata schemas, object count from the glTF property tables or b3dm Batch Tables. Contents are read for
+  local tilesets only; implicit tilesets give no object count. Point `collection` at the tilesets with
+  `--include tileset.json`; Items are named after the tileset folder.
 - **CityParquet** (`.parquet`) - Planned future support
 
 ## Features
@@ -461,3 +465,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [CityJSON](https://www.cityjson.org/)
 - [CityJSON Sequences](https://github.com/cityjson/cjseq)
 - [FlatCityBuf](https://github.com/cityjson/flatcitybuf)
+- [3D Tiles 1.1 (OGC 22-025r4)](https://docs.ogc.org/cs/22-025r4/22-025r4.html)

@@ -49,6 +49,8 @@ fn encoding_media_type(encoding: &str) -> &'static str {
         "CityJSONSeq" => "application/city+json-seq",
         "CityGML" => "application/gml+xml",
         "FlatCityBuf" => "application/vnd.flatcitybuf",
+        // Tileset JSON files use `application/json` (3D Tiles 1.1, "File Extensions and Media Types")
+        "3D Tiles" => "application/json",
         _ => "application/octet-stream",
     }
 }
@@ -71,11 +73,7 @@ pub fn item_from_file_with_crs_override(
     original_url: Option<&str>,
     crs_override: Option<&CRS>,
 ) -> Result<StacItemBuilder> {
-    let id = file_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("unknown")
-        .to_string();
+    let id = crate::reader::item_stem(file_path);
 
     build_item_from_file(id, file_path, reader, base_url, original_url, crs_override)
 }
@@ -88,10 +86,7 @@ pub fn item_from_file_with_format_suffix_and_crs(
     original_url: Option<&str>,
     crs_override: Option<&CRS>,
 ) -> Result<StacItemBuilder> {
-    let stem = file_path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("unknown");
+    let stem = crate::reader::item_stem(file_path);
 
     let suffix = match reader.encoding() {
         "CityJSON" => "_cj",

@@ -9,6 +9,7 @@ pub mod cityjson;
 pub mod cjseq;
 pub mod fcb;
 pub mod gzip;
+pub mod tiles3d;
 pub mod zip;
 
 pub use citygml::{CityGMLReader, CityGMLVersion};
@@ -16,6 +17,7 @@ pub use cityjson::CityJSONReader;
 pub use cjseq::CityJSONSeqReader;
 pub use fcb::FlatCityBufReader;
 pub use gzip::GzipReader;
+pub use tiles3d::Tiles3DReader;
 pub use zip::ZipReader;
 
 use crate::error::{CityJsonStacError, Result};
@@ -90,13 +92,20 @@ pub async fn get_reader_from_source(
 
             match extension.as_str() {
                 "json" => {
-                    // CityJSON: not streamable, download entire file then parse
-                    log::info!("Downloading remote CityJSON file: {}", url);
+                    // CityJSON or 3D Tiles tileset: not streamable, download entire file then parse
+                    log::info!("Downloading remote JSON file: {}", url);
                     let bytes = download_from_url(url).await?;
                     let content = String::from_utf8(bytes.to_vec()).map_err(|e| {
                         CityJsonStacError::Other(format!("Remote file is not valid UTF-8: {e}"))
                     })?;
                     log::debug!("Downloaded {} bytes for {}", content.len(), filename);
+                    if tiles3d::head_looks_like_tileset(&content) {
+                        // Keep the URL path, so that the Item is named after the tileset folder
+                        let url_path = url::Url::parse(url)
+                            .map(|u| PathBuf::from(u.path()))
+                            .unwrap_or(virtual_path);
+                        return Ok(Box::new(Tiles3DReader::from_content(&content, url_path)?));
+                    }
                     Ok(Box::new(CityJSONReader::from_content(
                         &content,
                         virtual_path,
@@ -207,6 +216,7 @@ pub fn get_reader(path: &Path) -> Result<Box<dyn CityModelMetadataReader>> {
     match extension.as_str() {
         "gz" => Ok(Box::new(GzipReader::new(path)?)),
         "zip" => Ok(Box::new(ZipReader::new(path)?)),
+        "json" if tiles3d::looks_like_tileset(path)? => Ok(Box::new(Tiles3DReader::new(path)?)),
         "json" => Ok(Box::new(CityJSONReader::new(path)?)),
         "jsonl" => Ok(Box::new(CityJSONSeqReader::new(path)?)),
         "fcb" => Ok(Box::new(FlatCityBufReader::new(path)?)),
@@ -224,6 +234,27 @@ pub fn get_reader(path: &Path) -> Result<Box<dyn CityModelMetadataReader>> {
             "Unsupported file extension: {extension}",
         ))),
     }
+}
+
+/// Stem used for the Item ID of a file.
+///
+/// A 3D Tiles tileset is conventionally named `tileset.json`, so its folder
+/// names it instead; other files keep their file stem.
+pub fn item_stem(path: &Path) -> String {
+    let stem = path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("unknown");
+    if stem.eq_ignore_ascii_case("tileset") {
+        if let Some(folder) = path
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str())
+        {
+            return folder.to_string();
+        }
+    }
+    stem.to_string()
 }
 
 /// Parse a CityJSON string, normalizing non-conforming fields.

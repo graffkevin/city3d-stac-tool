@@ -1688,21 +1688,12 @@ async fn process_collection_logic(
 
     // Pre-scan sources to count filenames for collision detection
     for source in &sources {
-        let filename = match source {
-            InputSource::Local(p) => p
-                .file_name()
-                .and_then(|s| s.to_str())
-                .unwrap_or("unknown")
-                .to_string(),
-            InputSource::Remote(u) => crate::remote::url_filename(u),
+        let path = match source {
+            InputSource::Local(p) => p.clone(),
+            InputSource::Remote(u) => PathBuf::from(crate::remote::url_filename(u)),
         };
-        // Get stem (remove extension)
-        let path = PathBuf::from(&filename);
-        let stem = path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown");
-        *stem_counts.entry(stem.to_string()).or_insert(0) += 1;
+        let stem = crate::reader::item_stem(&path);
+        *stem_counts.entry(stem).or_insert(0) += 1;
     }
 
     // Create output directories
@@ -1804,11 +1795,8 @@ async fn process_collection_logic(
 
                 // Determine item ID and filename
                 let file_path = reader.file_path();
-                let stem = file_path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .unwrap_or("unknown");
-                let has_collision = stem_counts.get(stem).is_some_and(|&count| count > 1);
+                let stem = crate::reader::item_stem(file_path);
+                let has_collision = stem_counts.get(&stem).is_some_and(|&count| count > 1);
 
                 let item_id = if has_collision {
                     let encoding = reader.encoding();
@@ -1820,7 +1808,7 @@ async fn process_collection_logic(
                     };
                     format!("{}{}", stem, suffix)
                 } else {
-                    stem.to_string()
+                    stem.clone()
                 };
 
                 let item_filename = format!("{item_id}_item.json");
