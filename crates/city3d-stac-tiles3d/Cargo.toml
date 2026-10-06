@@ -1,0 +1,13 @@
+[package]
+name = "city3d-stac-tiles3d"
+version = "0.1.0"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Metadata of 3D Tiles tilesets for STAC Items, without I/O (usable from WebAssembly)"
+keywords = ["stac", "3d-tiles", "gltf", "gis", "geospatial"]
+categories = ["science::geo"]
+
+[dependencies]
+serde_json.workspace = true

@@ -104,7 +104,9 @@ pub async fn get_reader_from_source(
                         let url_path = url::Url::parse(url)
                             .map(|u| PathBuf::from(u.path()))
                             .unwrap_or(virtual_path);
-                        return Ok(Box::new(Tiles3DReader::from_content(&content, url_path)?));
+                        return Ok(Box::new(
+                            Tiles3DReader::from_url(url, &content, url_path).await?,
+                        ));
                     }
                     Ok(Box::new(CityJSONReader::from_content(
                         &content,

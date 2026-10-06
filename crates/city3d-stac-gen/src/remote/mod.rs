@@ -151,6 +151,67 @@ pub async fn download_from_url(url: &str) -> Result<bytes::Bytes> {
     }
 }
 
+/// Download `len` bytes of a remote file from `offset` (fewer at the end of the file).
+///
+/// HTTP/HTTPS URLs use a `Range` request (RFC 9110, section 14); a server that
+/// ignores it and sends the whole file is handled by slicing. Cloud storage
+/// URLs use `object_store` ranged reads.
+pub async fn download_range(url: &str, offset: u64, len: u64) -> Result<bytes::Bytes> {
+    if len == 0 {
+        return Ok(bytes::Bytes::new());
+    }
+    let parsed_url = Url::parse(url).map_err(CityJsonStacError::UrlError)?;
+    match parsed_url.scheme() {
+        "s3" | "gs" | "az" | "azure" => {
+            let options: Vec<(String, String)> = Vec::new();
+            let (store, path) =
+                object_store::parse_url_opts(&parsed_url, options).map_err(|e| {
+                    CityJsonStacError::StorageError(format!("Failed to create object store: {e}"))
+                })?;
+            let range = offset as usize..(offset + len) as usize;
+            Ok(store.get_range(&path, range).await?)
+        }
+        "http" | "https" => {
+            let client = build_http_client()?;
+            let response = client
+                .get(url)
+                .header(
+                    reqwest::header::RANGE,
+                    format!("bytes={}-{}", offset, offset + len - 1),
+                )
+                .send()
+                .await
+                .map_err(|e| {
+                    CityJsonStacError::StorageError(format!("HTTP request failed: {e}"))
+                })?;
+            let status = response.status();
+            if status == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
+                return Ok(bytes::Bytes::new());
+            }
+            if !status.is_success() {
+                return Err(CityJsonStacError::StorageError(format!(
+                    "HTTP {status} for {url}"
+                )));
+            }
+            let partial = status == reqwest::StatusCode::PARTIAL_CONTENT;
+            let body = response
+                .bytes()
+                .await
+                .map_err(|e| CityJsonStacError::StorageError(format!("HTTP body error: {e}")))?;
+            if partial {
+                Ok(body)
+            } else {
+                let start = (offset as usize).min(body.len());
+                let end = (start + len as usize).min(body.len());
+                Ok(body.slice(start..end))
+            }
+        }
+        scheme => Err(CityJsonStacError::StorageError(format!(
+            "Unsupported URL scheme: {scheme}"
+        ))),
+    }
+}
+
 /// Stream a remote URL into a temporary file.
 ///
 /// This avoids buffering large remote assets such as ZIP and CityGML files fully

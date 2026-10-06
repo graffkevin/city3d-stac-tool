@@ -756,6 +756,7 @@ dependencies = [
  "assert_cmd",
  "bytes",
  "chrono",
+ "city3d-stac-tiles3d",
  "city3d-stac-types",
  "cjseq",
  "clap",
@@ -796,6 +797,13 @@ dependencies = [
  "url",
  "walkdir",
  "zip",
+]
+
+[[package]]
+name = "city3d-stac-tiles3d"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]
